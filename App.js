@@ -1,20 +1,34 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaView, View, Text } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { SparklesIcon } from "react-native-heroicons/solid";
+import React, { Component } from "react";
+
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
+import Home from "./screens/Home";
+import LanguageSwitch from "./components/LanguageSwitch";
+
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaView className="flex-1">
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen
+            name="🪷 App Title"
+            component={Home}
+            options={{
+              headerShadowVisible: true,
+              headerStyle: {
+                backgroundColor: "#38bdf8",
+              },
+              headerRight: () => <LanguageSwitch />,
+            }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
