@@ -1,6 +1,7 @@
 import { View, Text, Keyboard } from "react-native";
 import { useState, useEffect } from "react";
 import { Audio } from "expo-av";
+import { useTranslation } from "react-i18next";
 
 import TranslationHeader from "./TranslationHeader";
 import InputTranslation from "./InputTranslation";
@@ -13,9 +14,18 @@ import {
   pathTranslateAudio,
 } from "../api/translate";
 
+import convertLangNames2Code from "../ultilities/convertLangNames2Code";
+
 const TranslationBox = () => {
+  const { t } = useTranslation();
+  const [lang, setLang] = useState({
+    left: t("vi_full_name"),
+    right: t("en_full_name"),
+  });
   const [inputText, setInputText] = useState("");
-  const [translatedText, setTranslatedText] = useState("translation");
+  const [translatedText, setTranslatedText] = useState(
+    t("output_default_value")
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState("");
 
@@ -23,10 +33,9 @@ const TranslationBox = () => {
     setInputText(value);
   };
 
-  //TODO continue to reset it.
   const clearTextAndDeleteAudio = () => {
     setInputText("");
-    setTranslatedText("translation");
+    setTranslatedText(t("output_default_value"));
   };
 
   const playSound = async () => {
@@ -50,44 +59,47 @@ const TranslationBox = () => {
   };
 
   const onSubmitEditing = async () => {
-    try {
-      const data = {
-        text: inputText,
-        //   lang: convertLangNames2Code(lang.left),
-        lang: "en",
-      };
-      setIsLoading(true);
-      Keyboard.dismiss();
-      const responseObj = await fetchTranslate(pathTranslateText, data);
-      const responseBodyObj = await responseObj.json();
-      //Need to save the audio to a file, then play from audio from file
-      if (responseBodyObj["translatedText"]) {
-        setTranslatedText(responseBodyObj["translatedText"]);
-      }
-      //comment out for development
-      if (responseBodyObj["generate_file_name"]) {
-        const freshAudioUrl = `https://storage.googleapis.com/translation_mobile_audio_files/${responseBodyObj["generate_file_name"]}`;
-        setAudioUrl(freshAudioUrl);
-        const status = {
-          shouldPlay: false,
+    if (inputText.length > 1) {
+      //if there is nothing to translate don't even bother.
+
+      try {
+        const data = {
+          text: inputText,
+          lang: convertLangNames2Code(lang.left),
         };
-        const sound = new Audio.Sound();
-        await sound.loadAsync(
-          {
-            uri: freshAudioUrl,
-          },
-          status,
-          false
-        );
+        setIsLoading(true);
+        Keyboard.dismiss();
+        const responseObj = await fetchTranslate(pathTranslateText, data);
+        const responseBodyObj = await responseObj.json();
+        //Need to save the audio to a file, then play from audio from file
+        if (responseBodyObj["translatedText"]) {
+          setTranslatedText(responseBodyObj["translatedText"]);
+        }
+        //comment out for development
+        if (responseBodyObj["generate_file_name"]) {
+          const freshAudioUrl = `https://storage.googleapis.com/translation_mobile_audio_files/${responseBodyObj["generate_file_name"]}`;
+          setAudioUrl(freshAudioUrl);
+          const status = {
+            shouldPlay: false,
+          };
+          const sound = new Audio.Sound();
+          await sound.loadAsync(
+            {
+              uri: freshAudioUrl,
+            },
+            status,
+            false
+          );
 
-        await sound.playAsync();
+          await sound.playAsync();
 
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.log(error);
+      } finally {
         setIsLoading(false);
       }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -103,7 +115,11 @@ const TranslationBox = () => {
 
   return (
     <View className="relative z-0 flex h-3/4 flex-col rounded-md ">
-      <TranslationHeader />
+      <TranslationHeader
+        left={lang.left}
+        right={lang.right}
+        setLang={setLang}
+      />
       <View className="m-0 flex grow-[25] flex-col p-0 ">
         <InputTranslation
           inputText={inputText}
@@ -115,6 +131,7 @@ const TranslationBox = () => {
         <OutputTranslation
           translatedText={translatedText}
           playSound={playSound}
+          translation_copied={t("translation_copied")}
         />
       </View>
     </View>

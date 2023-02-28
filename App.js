@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { getLocales } from "expo-localization";
+import Toast from "react-native-toast-message";
 
 import i18next from "./i18n";
 
@@ -26,24 +27,30 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView className="flex-1">
-      <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen
-            name={`🪷 ${t("app_title")}`}
-            component={Home}
-            options={{
-              headerShadowVisible: true,
-              headerStyle: {
-                backgroundColor: "#38bdf8",
-              },
-              headerRight: () => (
-                <LanguageSwitch changeLanguage={changeLanguage} lng={locale} />
-              ),
-            }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaView>
+    <>
+      <SafeAreaView className="flex-1">
+        <NavigationContainer>
+          <Stack.Navigator>
+            <Stack.Screen
+              name={`🪷 ${t("app_title")}`}
+              component={Home}
+              options={{
+                headerShadowVisible: true,
+                headerStyle: {
+                  backgroundColor: "#38bdf8",
+                },
+                headerRight: () => (
+                  <LanguageSwitch
+                    changeLanguage={changeLanguage}
+                    lng={locale}
+                  />
+                ),
+              }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaView>
+      <Toast />
+    </>
   );
 }
