@@ -28,6 +28,8 @@ const TranslationBox = () => {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState("");
+  const [audioRecording, setAudioRecording] = useState();
+  const [isRecording, setIsRecording] = useState(false);
 
   const onChangeInput = (value) => {
     setInputText(value);
@@ -59,6 +61,9 @@ const TranslationBox = () => {
   };
 
   const onSubmitEditing = async () => {
+    //TODO comment out
+    // const newPathTranslateText = "http://127.0.0.1:8080/translateText";
+
     if (inputText.length > 1) {
       //if there is nothing to translate don't even bother.
 
@@ -113,6 +118,99 @@ const TranslationBox = () => {
     });
   }, []);
 
+  const startRecording = async () => {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      setIsRecording(true);
+
+      if (permission.status === "granted") {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+        });
+
+        const { recording } = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY
+        );
+        setAudioRecording(recording);
+      }
+    } catch (error) {
+      //maybe toast
+      console.log(error);
+    }
+  };
+
+  const stopRecording = async () => {
+    setAudioRecording(undefined);
+    await audioRecording.stopAndUnloadAsync();
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: true,
+      staysActiveInBackground: true,
+      playsInSilentModeIOS: true,
+    });
+
+    // const { sound, status } = await audioRecording.createNewLoadedSoundAsync();
+    // sound.replayAsync();
+    const uri = audioRecording.getURI();
+    addAudioElement(uri);
+    //Post the data to our local server first
+    setIsRecording(false);
+  };
+
+  const addAudioElement = async (uri) => {
+    let uriParts = uri.split(".");
+    let fileType = uriParts[uriParts.length - 1];
+
+    const formData = new FormData();
+    formData.append("lang", convertLangNames2Code(lang.left));
+    formData.append("audio", {
+      uri,
+      name: `recording.${fileType}`,
+      type: `audio/x-${fileType}`,
+    });
+    formData.append("format", fileType);
+
+    try {
+      setIsLoading(true);
+      //   const newPathTranslateAudio = "http://127.0.0.1:8080/translateAudio";
+      //   const responseObj = await postAudioFile(newPathTranslateAudio, formData);
+      const responseObj = await postAudioFile(pathTranslateAudio, formData);
+      const responseBodyObj = await responseObj.json();
+      if (responseBodyObj["ttsText"]) {
+        setInputText(responseBodyObj["ttsText"]);
+      }
+
+      if (responseBodyObj["translatedText"]) {
+        setTranslatedText(responseBodyObj["translatedText"]);
+      }
+      if (responseBodyObj["generate_file_name"]) {
+        const freshAudioUrl = `https://storage.googleapis.com/translation_mobile_audio_files/${responseBodyObj["generate_file_name"]}`;
+        setAudioUrl(freshAudioUrl);
+        const status = {
+          shouldPlay: false,
+        };
+        const sound = new Audio.Sound();
+        await sound.loadAsync(
+          {
+            uri: freshAudioUrl,
+          },
+          status,
+          false
+        );
+
+        await sound.playAsync();
+
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <View className="relative z-0 flex h-3/4 flex-col rounded-md ">
       <TranslationHeader
@@ -127,6 +225,9 @@ const TranslationBox = () => {
           clearTextAndDeleteAudio={clearTextAndDeleteAudio}
           isLoading={isLoading}
           onSubmitEditing={onSubmitEditing}
+          startRecording={startRecording}
+          stopRecording={stopRecording}
+          isRecording={isRecording}
         />
         <OutputTranslation
           translatedText={translatedText}

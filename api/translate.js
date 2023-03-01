@@ -20,5 +20,9 @@ export const postAudioFile = (path, data) => {
   return fetch(path, {
     method: "POST",
     body: data,
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "multipart/form-data",
+    },
   });
 };
